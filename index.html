@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warung Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2436;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #8b8fa8;
+    --accent: #4f8ef7;
+    --accent2: #6ee7b7;
+    --warn: #f59e0b;
+    --danger: #f87171;
+    --success: #34d399;
+    --sell: #4f8ef7;
+    --buy: #a78bfa;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* TOPBAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; height: 58px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .brand { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+  .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .brand span { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .date-badge { font-family: var(--mono); font-size: 11px; color: var(--muted); background: var(--surface2); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); }
+
+  /* NAV TABS */
+  .nav { display: flex; gap: 4px; padding: 14px 28px 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .nav-tab { padding: 10px 18px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .2s; border: none; background: none; border-bottom: 2px solid transparent; position: relative; bottom: -1px; }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-tab .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
+
+  /* MAIN */
+  .main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* SECTION HEADER */
+  .sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .sec-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .sec-title small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 8px; }
+
+  /* STAT CARDS */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; position: relative; overflow: hidden; transition: border-color .2s; }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius: var(--radius) var(--radius) 0 0; }
+  .stat-card.sell::before { background: var(--sell); }
+  .stat-card.buy::before { background: var(--buy); }
+  .stat-card.profit::before { background: var(--success); }
+  .stat-card.target::before { background: var(--warn); }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -1px; }
+  .stat-value.sell { color: var(--sell); }
+  .stat-value.buy { color: var(--buy); }
+  .stat-value.profit { color: var(--success); }
+  .stat-value.warn { color: var(--warn); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* FORM CARD */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 20px; }
+  .form-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .form-card h3 .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .form-card h3 .dot.sell { background: var(--sell); box-shadow: 0 0 8px var(--sell); }
+  .form-card h3 .dot.buy { background: var(--buy); box-shadow: 0 0 8px var(--buy); }
+  .form-card h3 .dot.target { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); font-family: var(--sans); font-size: 13px; padding: 9px 12px;
+    transition: border-color .2s, box-shadow .2s; outline: none; width: 100%;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,.15); }
+  .form-group select option { background: var(--surface2); }
+  .form-group input[type=number] { font-family: var(--mono); }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6a9efa; transform: translateY(-1px); }
+  .btn-success { background: var(--success); color: #0f1117; }
+  .btn-success:hover { background: #6ee7b7; transform: translateY(-1px); }
+  .btn-warn { background: var(--warn); color: #0f1117; }
+  .btn-warn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-ghost { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th { padding: 11px 14px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: var(--surface2); }
+  .mono { font-family: var(--mono); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .tag-sell { background: rgba(79,142,247,.15); color: var(--sell); }
+  .tag-buy { background: rgba(167,139,250,.15); color: var(--buy); }
+  .tag-food { background: rgba(52,211,153,.1); color: var(--success); }
+  .tag-drink { background: rgba(245,158,11,.1); color: var(--warn); }
+  .tag-snack { background: rgba(248,113,113,.1); color: var(--danger); }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 4px; transition: all .15s; }
+  .del-btn:hover { color: var(--danger); background: rgba(248,113,113,.1); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-bottom: 8px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .progress-bar { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  .fill-sell { background: linear-gradient(90deg, var(--sell), #6aa3fa); }
+  .fill-profit { background: linear-gradient(90deg, var(--success), #6ee7b7); }
+  .fill-warn { background: linear-gradient(90deg, var(--warn), #fcd34d); }
+  .fill-danger { background: linear-gradient(90deg, var(--danger), #fb923c); }
+
+  /* DASHBOARD GRID */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 700px) { .dash-grid { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } }
+
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .chart-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height .4s ease; min-height: 3px; }
+  .bar-lbl { font-size: 9px; color: var(--muted); font-family: var(--mono); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 18px; font-size: 13px; font-weight: 600; z-index: 999; transform: translateY(80px); opacity: 0; transition: all .3s; display: flex; align-items: center; gap: 8px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* TARGET PAGE */
+  .target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .target-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .target-card h4 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+  .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-row select, .filter-row input { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--sans); font-size: 12px; padding: 7px 10px; outline: none; }
+
+  .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sum-chip { background: var(--surface2); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-family: var(--mono); }
+  .sum-chip span { color: var(--muted); margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    Warung Manager
+    <span>/ Dashboard</span>
+  </div>
+  <div class="date-badge" id="clock">--</div>
+</div>
+
+<div class="nav">
+  <button class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="nav-tab" onclick="switchTab('penjualan')">💰 Penjualan <span class="badge" id="badge-jual">0</span></button>
+  <button class="nav-tab" onclick="switchTab('pembelian')">🛒 Pembelian <span class="badge" id="badge-beli">0</span></button>
+  <button class="nav-tab" onclick="switchTab('target')">🎯 Target & Pencapaian</button>
+</div>
+
+<div class="main">
+
+  <!-- ── DASHBOARD ── -->
+  <div class="page active" id="page-dashboard">
+    <div class="sec-hdr">
+      <div class="sec-title">Ringkasan <small id="dash-period">hari ini</small></div>
+      <div style="display:flex;gap:8px;">
+        <select onchange="changePeriod(this.value)" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 10px;border-radius:var(--radius-sm);outline:none;">
+          <option value="today">Hari ini</option>
+          <option value="month">Bulan ini</option>
+          <option value="year">Tahun ini</option>
+          <option value="all">Semua</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card sell">
+        <div class="stat-label">Total Penjualan</div>
+        <div class="stat-value sell" id="d-jual">Rp 0</div>
+        <div class="stat-sub" id="d-jual-n">0 transaksi</div>
+      </div>
+      <div class="stat-card buy">
+        <div class="stat-label">Total Pembelian</div>
+        <div class="stat-value buy" id="d-beli">Rp 0</div>
+        <div class="stat-sub" id="d-beli-n">0 transaksi</div>
+      </div>
+      <div class="stat-card profit">
+        <div class="stat-label">Laba Kotor</div>
+        <div class="stat-value profit" id="d-laba">Rp 0</div>
+        <div class="stat-sub" id="d-margin">Margin 0%</div>
+      </div>
+      <div class="stat-card target">
+        <div class="stat-label">Pencapaian Target</div>
+        <div class="stat-value warn" id="d-target-pct">0%</div>
+        <div class="stat-sub" id="d-target-sub">target belum diset</div>
+      </div>
+    </div>
+
+    <!-- Progress target -->
+    <div class="form-card" style="margin-bottom:20px;">
+      <h3><span class="dot target"></span> Pencapaian Target Penjualan</h3>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Harian</span><span id="prog-harian-lbl">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-sell" id="prog-harian" style="width:0%"></div></div>
+      </div>
+      <div class="progress-wrap" style="margin-top:14px;">
+        <div class="progress-label"><span>Bulanan</span><span id="prog-bulanan-lbl">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-warn" id="prog-bulanan" style="width:0%"></div></div>
+      </div>
+      <div class="progress-wrap" style="margin-top:14px;">
+        <div class="progress-label"><span>Tahunan</span><span id="prog-tahunan-lbl">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-profit" id="prog-tahunan" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="chart-wrap">
+        <div class="chart-title">Penjualan 7 Hari Terakhir</div>
+        <div class="bar-chart" id="chart-sell"></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Pembelian 7 Hari Terakhir</div>
+        <div class="bar-chart" id="chart-buy"></div>
+      </div>
+    </div>
+
+    <!-- Top produk -->
+    <div class="form-card" style="margin-top:20px;">
+      <h3><span class="dot sell"></span> Produk Terlaris</h3>
+      <div class="table-wrap" id="top-produk-wrap">
+        <div class="empty"><div class="empty-icon">📦</div>Belum ada data penjualan</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PENJUALAN ── -->
+  <div class="page" id="page-penjualan">
+    <div class="sec-hdr">
+      <div class="sec-title">Input Penjualan</div>
+    </div>
+
+    <div class="form-card">
+      <h3><span class="dot sell"></span> Tambah Data Penjualan</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tanggal</label>
+          <input type="date" id="j-tgl">
+        </div>
+        <div class="form-group">
+          <label>Nama Produk</label>
+          <input type="text" id="j-produk" placeholder="cth: Sempol Ayam" list="produk-list">
+          <datalist id="produk-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="j-kat">
+            <option value="Makanan">Makanan</option>
+            <option value="Minuman">Minuman</option>
+            <option value="Jajanan">Jajanan</option>
+            <option value="Camilan">Camilan</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Qty Terjual</label>
+          <input type="number" id="j-qty" placeholder="0" min="1">
+        </div>
+        <div class="form-group">
+          <label>Harga Satuan (Rp)</label>
+          <input type="number" id="j-harga" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Keterangan</label>
+          <input type="text" id="j-ket" placeholder="opsional">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="tambahJual()">+ Tambah Penjualan</button>
+        <span id="j-total-preview" style="font-family:var(--mono);font-size:13px;color:var(--muted);"></span>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <input type="date" id="f-jual-from" onchange="renderJual()">
+      <span style="color:var(--muted);font-size:12px;">s/d</span>
+      <input type="date" id="f-jual-to" onchange="renderJual()">
+      <select onchange="filterJualKat(this.value)" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);outline:none;">
+        <option value="">Semua kategori</option>
+        <option>Makanan</option><option>Minuman</option><option>Jajanan</option><option>Camilan</option><option>Lainnya</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="clearFilterJual()">Reset</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV('jual')">⬇ Export CSV</button>
+    </div>
+
+    <div class="summary-row" id="jual-summary"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Tanggal</th><th>Produk</th><th>Kategori</th><th>Qty</th><th>Harga Satuan</th><th>Total</th><th>Ket</th><th></th></tr>
+        </thead>
+        <tbody id="tbl-jual">
+          <tr><td colspan="9"><div class="empty"><div class="empty-icon">💰</div>Belum ada data. Tambahkan penjualan di atas.</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="jual-total-row" style="display:none; margin-top:12px; text-align:right; font-family:var(--mono); font-size:15px; color:var(--sell); font-weight:700;"></div>
+  </div>
+
+  <!-- ── PEMBELIAN ── -->
+  <div class="page" id="page-pembelian">
+    <div class="sec-hdr">
+      <div class="sec-title">Input Pembelian</div>
+    </div>
+
+    <div class="form-card">
+      <h3><span class="dot buy"></span> Tambah Data Pembelian</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tanggal Beli</label>
+          <input type="date" id="b-tgl">
+        </div>
+        <div class="form-group">
+          <label>Nama Bahan/Produk</label>
+          <input type="text" id="b-produk" placeholder="cth: Ayam giling" list="bahan-list">
+          <datalist id="bahan-list">
+            <option value="Ayam giling">
+            <option value="Tepung tapioka">
+            <option value="Minyak goreng">
+            <option value="Beras">
+            <option value="Gas LPG">
+            <option value="Plastik kemasan">
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="b-kat">
+            <option value="Bahan Baku">Bahan Baku</option>
+            <option value="Produk Jadi">Produk Jadi</option>
+            <option value="Perlengkapan">Perlengkapan</option>
+            <option value="Operasional">Operasional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Qty Beli</label>
+          <input type="number" id="b-qty" placeholder="0" min="1">
+        </div>
+        <div class="form-group">
+          <label>Harga Beli/Unit (Rp)</label>
+          <input type="number" id="b-harga" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>Supplier / Toko</label>
+          <input type="text" id="b-supplier" placeholder="cth: Pasar Pagi">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-success" onclick="tambahBeli()">+ Tambah Pembelian</button>
+        <span id="b-total-preview" style="font-family:var(--mono);font-size:13px;color:var(--muted);"></span>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <input type="date" id="f-beli-from" onchange="renderBeli()">
+      <span style="color:var(--muted);font-size:12px;">s/d</span>
+      <input type="date" id="f-beli-to" onchange="renderBeli()">
+      <select onchange="filterBeliKat(this.value)" style="background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:12px;padding:7px 10px;border-radius:var(--radius-sm);outline:none;">
+        <option value="">Semua kategori</option>
+        <option>Bahan Baku</option><option>Produk Jadi</option><option>Perlengkapan</option><option>Operasional</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="clearFilterBeli()">Reset</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV('beli')">⬇ Export CSV</button>
+    </div>
+
+    <div class="summary-row" id="beli-summary"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Tanggal</th><th>Bahan/Produk</th><th>Kategori</th><th>Qty</th><th>Harga/Unit</th><th>Total</th><th>Supplier</th><th></th></tr>
+        </thead>
+        <tbody id="tbl-beli">
+          <tr><td colspan="9"><div class="empty"><div class="empty-icon">🛒</div>Belum ada data. Tambahkan pembelian di atas.</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="beli-total-row" style="display:none; margin-top:12px; text-align:right; font-family:var(--mono); font-size:15px; color:var(--buy); font-weight:700;"></div>
+  </div>
+
+  <!-- ── TARGET ── -->
+  <div class="page" id="page-target">
+    <div class="sec-hdr">
+      <div class="sec-title">Target & Pencapaian</div>
+    </div>
+
+    <div class="form-card">
+      <h3><span class="dot target"></span> Set Target Penjualan</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Target Harian (Rp)</label>
+          <input type="number" id="t-harian" placeholder="cth: 500000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Target Bulanan (Rp)</label>
+          <input type="number" id="t-bulanan" placeholder="cth: 15000000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Target Tahunan (Rp)</label>
+          <input type="number" id="t-tahunan" placeholder="cth: 180000000" min="0">
+        </div>
+        <div class="form-group">
+          <label>Tahun Target</label>
+          <input type="number" id="t-tahun" placeholder="2025" min="2020" max="2035">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-warn" onclick="simpanTarget()">💾 Simpan Target</button>
+      </div>
+    </div>
+
+    <!-- Pencapaian cards -->
+    <div class="target-grid" id="target-cards"></div>
+
+    <!-- Monthly breakdown -->
+    <div class="form-card">
+      <h3><span class="dot sell"></span> Pencapaian Per Bulan (Tahun <span id="target-year-lbl">-</span>)</h3>
+      <div class="table-wrap" id="monthly-wrap">
+        <div class="empty"><div class="empty-icon">📅</div>Set target terlebih dahulu</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA STORE ──────────────────────────────────────────
+let jual = JSON.parse(localStorage.getItem('wm_jual') || '[]');
+let beli = JSON.parse(localStorage.getItem('wm_beli') || '[]');
+let target = JSON.parse(localStorage.getItem('wm_target') || '{"harian":0,"bulanan":0,"tahunan":0,"tahun":' + new Date().getFullYear() + '}');
+
+let filterJualKatVal = '';
+let filterBeliKatVal = '';
+
+function save() {
+  localStorage.setItem('wm_jual', JSON.stringify(jual));
+  localStorage.setItem('wm_beli', JSON.stringify(beli));
+  localStorage.setItem('wm_target', JSON.stringify(target));
+}
+
+// ── FORMAT ──────────────────────────────────────────────
+function rp(n) {
+  if (n >= 1e9) return 'Rp ' + (n/1e9).toFixed(1) + 'M';
+  if (n >= 1e6) return 'Rp ' + (n/1e6).toFixed(1) + ' jt';
+  return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+}
+function rpFull(n) { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function fmtDate(d) {
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function thisMonth() { return today().slice(0,7); }
+function thisYear() { return today().slice(0,4); }
+
+// ── CLOCK ──────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleDateString('id-ID',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) + ' ' + now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── TABS ────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'dashboard') refreshDashboard();
+  if (tab === 'target') refreshTarget();
+}
+
+// ── TOAST ───────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── INIT DATES ──────────────────────────────────────────
+function initDates() {
+  document.getElementById('j-tgl').value = today();
+  document.getElementById('b-tgl').value = today();
+  document.getElementById('t-tahun').value = thisYear();
+  const t = target;
+  document.getElementById('t-harian').value = t.harian || '';
+  document.getElementById('t-bulanan').value = t.bulanan || '';
+  document.getElementById('t-tahunan').value = t.tahunan || '';
+  document.getElementById('t-tahun').value = t.tahun || thisYear();
+}
+
+// ── LIVE PREVIEW ────────────────────────────────────────
+document.addEventListener('input', function(e) {
+  const qty = parseFloat(document.getElementById('j-qty')?.value) || 0;
+  const harga = parseFloat(document.getElementById('j-harga')?.value) || 0;
+  if (qty && harga) document.getElementById('j-total-preview').textContent = '= ' + rpFull(qty * harga);
+  else document.getElementById('j-total-preview').textContent = '';
+
+  const bqty = parseFloat(document.getElementById('b-qty')?.value) || 0;
+  const bharga = parseFloat(document.getElementById('b-harga')?.value) || 0;
+  if (bqty && bharga) document.getElementById('b-total-preview').textContent = '= ' + rpFull(bqty * bharga);
+  else document.getElementById('b-total-preview').textContent = '';
+});
+
+// ── TAMBAH JUAL ─────────────────────────────────────────
+function tambahJual() {
+  const tgl = document.getElementById('j-tgl').value;
+  const produk = document.getElementById('j-produk').value.trim();
+  const kat = document.getElementById('j-kat').value;
+  const qty = parseFloat(document.getElementById('j-qty').value);
+  const harga = parseFloat(document.getElementById('j-harga').value);
+  const ket = document.getElementById('j-ket').value.trim();
+
+  if (!tgl || !produk || !qty || !harga) { showToast('Isi semua field wajib!', 'error'); return; }
+
+  jual.push({ id: Date.now(), tgl, produk, kat, qty, harga, total: qty * harga, ket });
+  save();
+  updateProdukList();
+  document.getElementById('j-qty').value = '';
+  document.getElementById('j-harga').value = '';
+  document.getElementById('j-ket').value = '';
+  document.getElementById('j-produk').value = '';
+  renderJual();
+  showToast('Penjualan ditambahkan!');
+  document.getElementById('badge-jual').textContent = jual.length;
+}
+
+// ── TAMBAH BELI ─────────────────────────────────────────
+function tambahBeli() {
+  const tgl = document.getElementById('b-tgl').value;
+  const produk = document.getElementById('b-produk').value.trim();
+  const kat = document.getElementById('b-kat').value;
+  const qty = parseFloat(document.getElementById('b-qty').value);
+  const harga = parseFloat(document.getElementById('b-harga').value);
+  const supplier = document.getElementById('b-supplier').value.trim();
+
+  if (!tgl || !produk || !qty || !harga) { showToast('Isi semua field wajib!', 'error'); return; }
+
+  beli.push({ id: Date.now(), tgl, produk, kat, qty, harga, total: qty * harga, supplier });
+  save();
+  document.getElementById('b-qty').value = '';
+  document.getElementById('b-harga').value = '';
+  document.getElementById('b-supplier').value = '';
+  document.getElementById('b-produk').value = '';
+  renderBeli();
+  showToast('Pembelian ditambahkan!');
+  document.getElementById('badge-beli').textContent = beli.length;
+}
+
+// ── HAPUS ────────────────────────────────────────────────
+function hapusJual(id) {
+  jual = jual.filter(x => x.id !== id); save(); renderJual();
+  document.getElementById('badge-jual').textContent = jual.length;
+  showToast('Data dihapus');
+}
+function hapusBeli(id) {
+  beli = beli.filter(x => x.id !== id); save(); renderBeli();
+  document.getElementById('badge-beli').textContent = beli.length;
+  showToast('Data dihapus');
+}
+
+// ── FILTER ───────────────────────────────────────────────
+function filterJualKat(v) { filterJualKatVal = v; renderJual(); }
+function filterBeliKat(v) { filterBeliKatVal = v; renderBeli(); }
+function clearFilterJual() {
+  document.getElementById('f-jual-from').value = '';
+  document.getElementById('f-jual-to').value = '';
+  filterJualKatVal = '';
+  document.querySelectorAll('#page-penjualan select')[0].value = '';
+  renderJual();
+}
+function clearFilterBeli() {
+  document.getElementById('f-beli-from').value = '';
+  document.getElementById('f-beli-to').value = '';
+  filterBeliKatVal = '';
+  document.querySelectorAll('#page-pembelian select')[0].value = '';
+  renderBeli();
+}
+
+function getFilteredJual() {
+  const from = document.getElementById('f-jual-from').value;
+  const to = document.getElementById('f-jual-to').value;
+  return jual.filter(x => {
+    if (from && x.tgl < from) return false;
+    if (to && x.tgl > to) return false;
+    if (filterJualKatVal && x.kat !== filterJualKatVal) return false;
+    return true;
+  });
+}
+function getFilteredBeli() {
+  const from = document.getElementById('f-beli-from').value;
+  const to = document.getElementById('f-beli-to').value;
+  return beli.filter(x => {
+    if (from && x.tgl < from) return false;
+    if (to && x.tgl > to) return false;
+    if (filterBeliKatVal && x.kat !== filterBeliKatVal) return false;
+    return true;
+  });
+}
+
+// ── RENDER TABEL JUAL ────────────────────────────────────
+function renderJual() {
+  const data = getFilteredJual().sort((a,b) => b.tgl.localeCompare(a.tgl));
+  const tbody = document.getElementById('tbl-jual');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">💰</div>Belum ada data</div></td></tr>';
+    document.getElementById('jual-total-row').style.display = 'none';
+    document.getElementById('jual-summary').innerHTML = '';
+    return;
+  }
+  const katColor = { Makanan:'tag-food', Minuman:'tag-drink', Jajanan:'tag-sell', Camilan:'tag-snack', Lainnya:'' };
+  tbody.innerHTML = data.map((x,i) => `
+    <tr>
+      <td class="mono" style="color:var(--muted)">${i+1}</td>
+      <td class="mono" style="font-size:12px">${fmtDate(x.tgl)}</td>
+      <td style="font-weight:600">${x.produk}</td>
+      <td><span class="tag ${katColor[x.kat]||''}">${x.kat}</span></td>
+      <td class="mono" style="text-align:center">${x.qty}</td>
+      <td class="mono">${rpFull(x.harga)}</td>
+      <td class="mono" style="color:var(--sell);font-weight:600">${rpFull(x.total)}</td>
+      <td style="color:var(--muted);font-size:12px">${x.ket||'-'}</td>
+      <td><button class="del-btn" onclick="hapusJual(${x.id})">✕</button></td>
+    </tr>`).join('');
+
+  const total = data.reduce((a,x) => a+x.total, 0);
+  const tr = document.getElementById('jual-total-row');
+  tr.style.display = 'block';
+  tr.textContent = `Total: ${rpFull(total)} (${data.length} transaksi)`;
+
+  const sumEl = document.getElementById('jual-summary');
+  sumEl.innerHTML = `<div class="sum-chip"><span>Total</span>${rp(total)}</div><div class="sum-chip"><span>Rata-rata</span>${rp(total/data.length)}</div><div class="sum-chip"><span>Transaksi</span>${data.length}</div>`;
+}
+
+// ── RENDER TABEL BELI ────────────────────────────────────
+function renderBeli() {
+  const data = getFilteredBeli().sort((a,b) => b.tgl.localeCompare(a.tgl));
+  const tbody = document.getElementById('tbl-beli');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🛒</div>Belum ada data</div></td></tr>';
+    document.getElementById('beli-total-row').style.display = 'none';
+    document.getElementById('beli-summary').innerHTML = '';
+    return;
+  }
+  const katColor = { 'Bahan Baku':'tag-food', 'Produk Jadi':'tag-drink', 'Perlengkapan':'tag-snack', 'Operasional':'' };
+  tbody.innerHTML = data.map((x,i) => `
+    <tr>
+      <td class="mono" style="color:var(--muted)">${i+1}</td>
+      <td class="mono" style="font-size:12px">${fmtDate(x.tgl)}</td>
+      <td style="font-weight:600">${x.produk}</td>
+      <td><span class="tag ${katColor[x.kat]||''}">${x.kat}</span></td>
+      <td class="mono" style="text-align:center">${x.qty}</td>
+      <td class="mono">${rpFull(x.harga)}</td>
+      <td class="mono" style="color:var(--buy);font-weight:600">${rpFull(x.total)}</td>
+      <td style="color:var(--muted);font-size:12px">${x.supplier||'-'}</td>
+      <td><button class="del-btn" onclick="hapusBeli(${x.id})">✕</button></td>
+    </tr>`).join('');
+
+  const total = data.reduce((a,x) => a+x.total, 0);
+  const tr = document.getElementById('beli-total-row');
+  tr.style.display = 'block';
+  tr.textContent = `Total: ${rpFull(total)} (${data.length} transaksi)`;
+
+  const sumEl = document.getElementById('beli-summary');
+  sumEl.innerHTML = `<div class="sum-chip"><span>Total</span>${rp(total)}</div><div class="sum-chip"><span>Rata-rata</span>${rp(total/data.length)}</div><div class="sum-chip"><span>Transaksi</span>${data.length}</div>`;
+}
+
+// ── PERIOD FILTER ────────────────────────────────────────
+let dashPeriod = 'today';
+function changePeriod(v) {
+  dashPeriod = v;
+  const labels = { today:'hari ini', month:'bulan ini', year:'tahun ini', all:'semua data' };
+  document.getElementById('dash-period').textContent = labels[v];
+  refreshDashboard();
+}
+
+function getByPeriod(arr) {
+  const t = today(), m = thisMonth(), y = thisYear();
+  return arr.filter(x => {
+    if (dashPeriod === 'today') return x.tgl === t;
+    if (dashPeriod === 'month') return x.tgl.startsWith(m);
+    if (dashPeriod === 'year') return x.tgl.startsWith(y);
+    return true;
+  });
+}
+
+// ── DASHBOARD ────────────────────────────────────────────
+function refreshDashboard() {
+  const j = getByPeriod(jual);
+  const b = getByPeriod(beli);
+  const totalJ = j.reduce((a,x) => a+x.total, 0);
+  const totalB = b.reduce((a,x) => a+x.total, 0);
+  const laba = totalJ - totalB;
+  const margin = totalJ > 0 ? (laba/totalJ*100).toFixed(1) : 0;
+
+  document.getElementById('d-jual').textContent = rp(totalJ);
+  document.getElementById('d-jual-n').textContent = j.length + ' transaksi';
+  document.getElementById('d-beli').textContent = rp(totalB);
+  document.getElementById('d-beli-n').textContent = b.length + ' transaksi';
+  document.getElementById('d-laba').textContent = rp(laba);
+  document.getElementById('d-laba').style.color = laba >= 0 ? 'var(--success)' : 'var(--danger)';
+  document.getElementById('d-margin').textContent = 'Margin ' + margin + '%';
+
+  // Target progress
+  const todayTotal = jual.filter(x => x.tgl === today()).reduce((a,x) => a+x.total, 0);
+  const monthTotal = jual.filter(x => x.tgl.startsWith(thisMonth())).reduce((a,x) => a+x.total, 0);
+  const yearTotal = jual.filter(x => x.tgl.startsWith(target.tahun+'')).reduce((a,x) => a+x.total, 0);
+
+  const th = target.harian || 0, tb = target.bulanan || 0, ty = target.tahunan || 0;
+  const ph = th > 0 ? Math.min(100, todayTotal/th*100) : 0;
+  const pb = tb > 0 ? Math.min(100, monthTotal/tb*100) : 0;
+  const py = ty > 0 ? Math.min(100, yearTotal/ty*100) : 0;
+
+  document.getElementById('prog-harian').style.width = ph + '%';
+  document.getElementById('prog-harian-lbl').textContent = rp(todayTotal) + ' / ' + (th ? rp(th) : 'belum diset');
+  document.getElementById('prog-bulanan').style.width = pb + '%';
+  document.getElementById('prog-bulanan-lbl').textContent = rp(monthTotal) + ' / ' + (tb ? rp(tb) : 'belum diset');
+  document.getElementById('prog-tahunan').style.width = py + '%';
+  document.getElementById('prog-tahunan-lbl').textContent = rp(yearTotal) + ' / ' + (ty ? rp(ty) : 'belum diset');
+
+  const mainPct = ty > 0 ? Math.round(yearTotal/ty*100) : (tb > 0 ? Math.round(monthTotal/tb*100) : 0);
+  document.getElementById('d-target-pct').textContent = mainPct + '%';
+  document.getElementById('d-target-sub').textContent = ty > 0 ? 'dari target tahunan' : tb > 0 ? 'dari target bulanan' : 'target belum diset';
+
+  // Bar charts
+  renderBarChart('chart-sell', 7, 'jual');
+  renderBarChart('chart-buy', 7, 'beli');
+
+  // Top produk
+  renderTopProduk(j);
+}
+
+function renderBarChart(id, days, type) {
+  const el = document.getElementById(id);
+  const arr = type === 'jual' ? jual : beli;
+  const color = type === 'jual' ? 'var(--sell)' : 'var(--buy)';
+  const vals = [];
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const total = arr.filter(x => x.tgl === ds).reduce((a,x) => a+x.total, 0);
+    const label = d.toLocaleDateString('id-ID',{weekday:'short'});
+    vals.push({ total, label, date: ds });
+  }
+  const max = Math.max(...vals.map(v => v.total), 1);
+  el.innerHTML = vals.map(v => {
+    const h = Math.round((v.total/max)*100);
+    return `<div class="bar-col">
+      <div class="bar-lbl">${rp(v.total)}</div>
+      <div class="bar" style="height:${h}%;background:${color};opacity:${v.total>0?1:0.2}"></div>
+      <div class="bar-lbl">${v.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTopProduk(data) {
+  const map = {};
+  data.forEach(x => {
+    if (!map[x.produk]) map[x.produk] = { qty: 0, total: 0 };
+    map[x.produk].qty += x.qty;
+    map[x.produk].total += x.total;
+  });
+  const sorted = Object.entries(map).sort((a,b) => b[1].total - a[1].total).slice(0,5);
+  const el = document.getElementById('top-produk-wrap');
+  if (!sorted.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📦</div>Belum ada data penjualan</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>#</th><th>Produk</th><th>Total Qty</th><th>Total Penjualan</th></tr></thead><tbody>
+    ${sorted.map((([name,v],i) => `<tr><td class="mono" style="color:var(--muted)">${i+1}</td><td style="font-weight:600">${name}</td><td class="mono">${v.qty} unit</td><td class="mono" style="color:var(--sell);font-weight:600">${rpFull(v.total)}</td></tr>`)).join('')}
+  </tbody></table>`;
+}
+
+// ── TARGET ───────────────────────────────────────────────
+function simpanTarget() {
+  target.harian = parseFloat(document.getElementById('t-harian').value) || 0;
+  target.bulanan = parseFloat(document.getElementById('t-bulanan').value) || 0;
+  target.tahunan = parseFloat(document.getElementById('t-tahunan').value) || 0;
+  target.tahun = parseInt(document.getElementById('t-tahun').value) || new Date().getFullYear();
+  save(); refreshTarget(); showToast('Target disimpan!');
+}
+
+function refreshTarget() {
+  const y = target.tahun;
+  document.getElementById('target-year-lbl').textContent = y;
+  const todayTotal = jual.filter(x => x.tgl === today()).reduce((a,x) => a+x.total, 0);
+  const monthTotal = jual.filter(x => x.tgl.startsWith(thisMonth())).reduce((a,x) => a+x.total, 0);
+  const yearTotal = jual.filter(x => x.tgl.startsWith(y+'')).reduce((a,x) => a+x.total, 0);
+
+  const ph = target.harian > 0 ? Math.min(100, todayTotal/target.harian*100) : 0;
+  const pb = target.bulanan > 0 ? Math.min(100, monthTotal/target.bulanan*100) : 0;
+  const py = target.tahunan > 0 ? Math.min(100, yearTotal/target.tahunan*100) : 0;
+
+  function cardHTML(label, actual, tgt, pct, cls) {
+    const fillCls = pct >= 100 ? 'fill-profit' : pct >= 75 ? 'fill-warn' : pct >= 40 ? 'fill-sell' : 'fill-danger';
+    const statusColor = pct >= 100 ? 'var(--success)' : pct >= 75 ? 'var(--warn)' : pct >= 40 ? 'var(--sell)' : 'var(--danger)';
+    return `<div class="target-card">
+      <h4>${label}</h4>
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:${statusColor};margin-bottom:4px">${Math.round(pct)}%</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${rp(actual)} dari ${tgt ? rp(tgt) : 'belum diset'}</div>
+      <div class="progress-bar" style="height:10px;"><div class="progress-fill ${fillCls}" style="width:${Math.round(pct)}%"></div></div>
+      ${pct >= 100 ? '<div style="font-size:12px;color:var(--success);margin-top:8px;font-weight:600">🎉 Target tercapai!</div>' : ''}
+    </div>`;
+  }
+
+  document.getElementById('target-cards').innerHTML =
+    cardHTML('Harian', todayTotal, target.harian, ph) +
+    cardHTML('Bulanan', monthTotal, target.bulanan, pb) +
+    cardHTML('Tahunan', yearTotal, target.tahunan, py);
+
+  // Monthly table
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const monthlyTarget = target.bulanan || (target.tahunan / 12);
+  const rows = months.map((m, i) => {
+    const key = `${y}-${String(i+1).padStart(2,'0')}`;
+    const actual = jual.filter(x => x.tgl.startsWith(key)).reduce((a,x) => a+x.total, 0);
+    const pct = monthlyTarget > 0 ? Math.min(100, actual/monthlyTarget*100) : 0;
+    const fillCls = pct >= 100 ? 'fill-profit' : pct >= 75 ? 'fill-warn' : pct >= 40 ? 'fill-sell' : 'fill-danger';
+    const statusColor = pct >= 100 ? 'var(--success)' : pct >= 75 ? 'var(--warn)' : pct >= 40 ? 'var(--sell)' : 'var(--danger)';
+    return `<tr>
+      <td style="font-weight:600">${m} ${y}</td>
+      <td class="mono" style="color:var(--sell)">${rpFull(actual)}</td>
+      <td class="mono" style="color:var(--muted)">${monthlyTarget ? rpFull(monthlyTarget) : '-'}</td>
+      <td style="color:${statusColor};font-family:var(--mono);font-weight:700">${monthlyTarget ? Math.round(pct)+'%' : '-'}</td>
+      <td style="min-width:120px"><div class="progress-bar" style="height:6px"><div class="progress-fill ${fillCls}" style="width:${Math.round(pct)}%"></div></div></td>
+      <td style="font-size:12px;color:${pct>=100?'var(--success)':'var(--muted)'}">${pct>=100?'✓ Tercapai':actual>0?'Berjalan':'-'}</td>
+    </tr>`;
+  });
+  document.getElementById('monthly-wrap').innerHTML = `<table>
+    <thead><tr><th>Bulan</th><th>Realisasi</th><th>Target</th><th>%</th><th>Progress</th><th>Status</th></tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table>`;
+}
+
+// ── PRODUK AUTOCOMPLETE ──────────────────────────────────
+function updateProdukList() {
+  const names = [...new Set(jual.map(x => x.produk))];
+  document.getElementById('produk-list').innerHTML = names.map(n => `<option value="${n}">`).join('');
+}
+
+// ── EXPORT CSV ──────────────────────────────────────────
+function exportCSV(type) {
+  const data = type === 'jual' ? getFilteredJual() : getFilteredBeli();
+  if (!data.length) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
+  let csv = type === 'jual'
+    ? 'Tanggal,Produk,Kategori,Qty,Harga Satuan,Total,Keterangan\n'
+    : 'Tanggal,Produk,Kategori,Qty,Harga/Unit,Total,Supplier\n';
+  data.forEach(x => {
+    if (type === 'jual') csv += `${x.tgl},"${x.produk}",${x.kat},${x.qty},${x.harga},${x.total},"${x.ket||''}"\n`;
+    else csv += `${x.tgl},"${x.produk}",${x.kat},${x.qty},${x.harga},${x.total},"${x.supplier||''}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `data_${type}_warung_${today()}.csv`;
+  a.click();
+  showToast('Export berhasil!');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+initDates();
+renderJual();
+renderBeli();
+refreshDashboard();
+updateProdukList();
+document.getElementById('badge-jual').textContent = jual.length;
+document.getElementById('badge-beli').textContent = beli.length;
+</script>
+</body>
+</html>
